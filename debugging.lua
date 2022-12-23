@@ -1,7 +1,7 @@
 local exports = {}
 
 commands.add_command(
-    "attach_debug",
+    "attach-debug",
     {"micro-doc.cmd-attach_debug"},
     function(command_data)
         local player = game.players[command_data.player_index]

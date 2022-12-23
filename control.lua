@@ -1,23 +1,8 @@
 local debug = require("debugging")
 local grid = require("gridding")
-
-local function fix_structures(options)
-    global.players = global.players or {}
-    options = options or {}  -- defaults
-    if game then
-        local function fix_player(player)
-            global.players[player.index] = global.players[player.index] or {}
-            global.players[player.index].interfaces = global.players[player.index].interfaces or {}
-        end
-        if options.player then
-            fix_player(options.player)
-        else
-            for _, player in pairs(game.players) do
-                fix_player(player)
-            end
-        end
-    end
-end
+local lobby = require("lobby")
+local utils = require("utils")
+local shared = require("shared")
 
 local lobby_name = "lobby"
 local get_lobby_surface = function()
@@ -33,7 +18,7 @@ local function build_lobby()
 end
 
 script.on_init(function()
-    fix_structures()
+    shared.fix_structures()
     build_lobby()
     grid.init_hook()
 end)
@@ -48,15 +33,14 @@ end
 
 script.on_event(defines.events.on_player_created, function(event)
     local player = game.players[event.player_index]
-    fix_structures()
+    shared.fix_structures{player=player}
     player.teleport({0,0}, get_lobby_surface())
     on_enter_lobby(event)
 end)
 
 script.on_event(defines.events.on_player_changed_surface, function(event)
     local player = game.players[event.player_index]
-    global.players = global.players or {}
-    global.players[event.player_index] = global.players[event.player_index] or {}
+    shared.fix_structures{player=player}
     if player.surface.name == lobby_name then
         on_enter_lobby(event)
     end
@@ -70,9 +54,14 @@ script.on_event(defines.events.on_player_changed_position, function(event)
 end)
 
 script.on_event(defines.events.on_tick, function(event)
+    shared.tick()
+    grid.tick()
+    lobby.tick()
 end)
 
-local function create_lobby_menu(player)
+local function begin_new(player)
+    local area = grid.create_new()
+    grid.display_catching_up_screen(player)
 end
 
 script.on_nth_tick(5, function()
@@ -87,3 +76,13 @@ end)
 script.on_event(defines.events.on_chunk_generated, function(event)
     grid.chunk_generated(event)
 end)
+
+
+Controller = {
+    grid=grid,
+    lobby=lobby,
+    utils=utils,
+    new=function()
+        begin_new(game.player)
+    end
+}
